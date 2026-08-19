@@ -1,0 +1,9 @@
+# Generates android/app/src/main/res/mipmap-*/ic_launcher.png and the
+# adaptive-icon layers from a single source image. Run with:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#0C1C2E"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  min_sdk_android: 23
