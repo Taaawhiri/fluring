@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'src/ring/service_locator.dart';
 import 'src/ui/camera_grid.dart';
-import 'src/ui/login_screen.dart';
+import 'src/ui/qr_login_screen.dart';
 import 'src/ui/theme.dart';
 
 Future<void> main() async {
@@ -67,7 +67,7 @@ class _RootState extends State<_Root> {
     }
 
     if (!signedIn) {
-      return LoginScreen(
+      return QrLoginScreen(
         auth: services.auth,
         onSignedIn: () => setState(() => _signedIn = true),
       );
