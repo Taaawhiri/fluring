@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
@@ -10,18 +11,20 @@ import '../ring/ring_exceptions.dart';
 /// Lets the user sign in from their phone instead of typing a Ring password
 /// with a TV remote.
 ///
-/// The TV opens a plain HTTP server on the home network and shows its address
-/// as a QR code; the phone's own browser — and its own keyboard — does the
-/// actual form filling. Credentials only ever travel across the LAN, and only
-/// as far as this device: there is no cloud relay, no pairing service, nothing
-/// to keep running afterwards.
+/// The TV opens an HTTPS server on the home network and shows its address as a
+/// QR code; the phone's own browser — and its own keyboard — does the actual
+/// form filling. Credentials only ever travel across the LAN, and only as far
+/// as this device: there is no cloud relay, no pairing service, nothing to
+/// keep running afterwards.
 ///
-/// The trade-off worth knowing: this is plain HTTP, not HTTPS. A self-signed
-/// certificate would just trade one warning screen for another without a real
-/// trust anchor, so on a home network the plain-HTTP exposure is the accepted
-/// cost — anyone already on the Wi-Fi could in principle observe the one
-/// request. The server binds only for the few minutes login takes and shuts
-/// itself down the moment it succeeds.
+/// The certificate is self-signed and baked into the app, the same on every
+/// install — there is no certificate authority a LAN-only server could get a
+/// trusted certificate from. That means the phone's browser still shows a
+/// "connection is not private" warning to click through: the point of this
+/// certificate isn't to prove identity, it's to encrypt the hop so a passive
+/// listener on the Wi-Fi can't read the password off the wire in the clear.
+/// The server binds only for the few minutes login takes and shuts itself
+/// down the moment it succeeds.
 class LoginServer {
   LoginServer({required RingAuth auth}) : _auth = auth; // ignore: prefer_initializing_formals
 
@@ -49,9 +52,24 @@ class LoginServer {
         .addMiddleware(logRequests())
         .addHandler(_route);
 
-    final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, 0);
+    final context = await _certificateContext();
+    final server = await HttpServer.bindSecure(
+      InternetAddress.anyIPv4,
+      0,
+      context,
+    );
     _server = server;
-    return Uri(scheme: 'http', host: address, port: server.port);
+    shelf_io.serveRequests(server, handler);
+
+    return Uri(scheme: 'https', host: address, port: server.port);
+  }
+
+  Future<SecurityContext> _certificateContext() async {
+    final cert = await rootBundle.load('assets/tls/cert.pem');
+    final key = await rootBundle.load('assets/tls/key.pem');
+    return SecurityContext()
+      ..useCertificateChainBytes(cert.buffer.asUint8List())
+      ..usePrivateKeyBytes(key.buffer.asUint8List());
   }
 
   Future<void> stop() async {

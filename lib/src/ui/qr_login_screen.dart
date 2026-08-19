@@ -142,6 +142,15 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
           style: TextStyle(fontSize: 14, color: Colors.white38),
           textAlign: TextAlign.center,
         ),
+        const SizedBox(height: 4),
+        // The certificate is self-signed by necessity — a LAN-only server has
+        // no certificate authority to get a trusted one from — so the phone's
+        // browser always shows this warning once, and it is expected.
+        const Text(
+          'Il browser mostrerà un avviso di sicurezza: tocca "Avanzate" → "Procedi comunque"',
+          style: TextStyle(fontSize: 13, color: Colors.white38),
+          textAlign: TextAlign.center,
+        ),
       ],
     );
   }
