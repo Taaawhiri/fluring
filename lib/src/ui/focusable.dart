@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'theme.dart';
+
 /// A tappable surface built for a remote control.
 ///
 /// On a TV there is no pointer, so the focused element is the only thing
-/// telling the user where they are: focus gets a bright border and a slight
-/// scale-up, both large enough to read across a room. Select and Enter are
+/// telling the user where they are: focus gets a bright gradient border, a
+/// glow and a slight scale-up, all large enough to read across a room. Every
+/// surface also carries a soft shadow even at rest, so the UI reads as a
+/// stack of cards rather than flat color rectangles. Select and Enter are
 /// handled explicitly because Android TV remotes send either one depending on
 /// the manufacturer.
 class TvFocusable extends StatefulWidget {
@@ -14,7 +18,7 @@ class TvFocusable extends StatefulWidget {
     required this.child,
     required this.onSelect,
     this.autofocus = false,
-    this.borderRadius = 12,
+    this.borderRadius = kSurfaceRadius,
   });
 
   final Widget child;
@@ -54,38 +58,38 @@ class _TvFocusableState extends State<TvFocusable> {
         widget.onSelect();
         return KeyEventResult.handled;
       },
-      // Without this, the focus zoom grows past this widget's own box and
-      // paints over whatever sits next to it — a grid of tiles has no spare
-      // room reserved for that, so a focused tile visibly overlapped its
-      // neighbours. Clipping to these bounds keeps the zoom inside the tile
-      // it belongs to, whatever size the tile ends up being.
-      child: ClipRect(
-        child: GestureDetector(
-          onTap: widget.onSelect,
-          child: AnimatedScale(
-            scale: _focused ? 1.04 : 1,
-            duration: const Duration(milliseconds: 120),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(widget.borderRadius),
-                border: Border.all(
-                  color: _focused ? scheme.primary : Colors.transparent,
-                  width: 3,
-                ),
-                boxShadow: _focused
-                    ? [
-                        BoxShadow(
-                          color: scheme.primary.withValues(alpha: 0.45),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ]
-                    : const [],
+      // The zoom stays small (4%) and callers that place this inside a tight
+      // grid leave a margin around each tile for exactly this — see
+      // CameraGrid, which insets each tile so the zoom and its shadow have
+      // room to breathe without a focused tile overlapping its neighbour.
+      child: GestureDetector(
+        onTap: widget.onSelect,
+        child: AnimatedScale(
+          scale: _focused ? 1.04 : 1,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(widget.borderRadius),
+              border: Border.all(
+                color: _focused ? scheme.primary : Colors.white10,
+                width: _focused ? 3 : 1,
               ),
-              clipBehavior: Clip.antiAlias,
-              child: widget.child,
+              boxShadow: _focused
+                  ? [
+                      BoxShadow(
+                        color: scheme.primary.withValues(alpha: 0.5),
+                        blurRadius: 28,
+                        spreadRadius: 1,
+                      ),
+                      ...kRestShadow,
+                    ]
+                  : kRestShadow,
             ),
+            clipBehavior: Clip.antiAlias,
+            child: widget.child,
           ),
         ),
       ),

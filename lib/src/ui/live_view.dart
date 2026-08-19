@@ -7,6 +7,7 @@ import '../ring/models.dart';
 import '../ring/ring_exceptions.dart';
 import '../ring/service_locator.dart';
 import 'focusable.dart';
+import 'theme.dart';
 
 /// Full-screen live video for one camera.
 ///
@@ -118,14 +119,20 @@ class _LiveViewState extends State<LiveView> {
             const SizedBox(height: 24),
             TvFocusable(
               autofocus: true,
+              borderRadius: kPillRadius,
               onSelect: _connect,
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
                   vertical: 16,
                 ),
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: const Text('Retry', style: TextStyle(fontSize: 19)),
+                decoration: BoxDecoration(
+                  gradient: kAccentGradient(Theme.of(context).colorScheme),
+                ),
+                child: const Text(
+                  'Retry',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],

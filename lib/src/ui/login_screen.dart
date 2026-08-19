@@ -161,10 +161,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
                 const SizedBox(height: 28),
                 TvFocusable(
+                  borderRadius: kPillRadius,
                   onSelect: _submit,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 18),
-                    color: Theme.of(context).colorScheme.primaryContainer,
+                    decoration: BoxDecoration(
+                      gradient: kAccentGradient(Theme.of(context).colorScheme),
+                    ),
                     child: Center(
                       child: _busy
                           ? const SizedBox(

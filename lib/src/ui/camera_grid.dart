@@ -80,50 +80,20 @@ class _CameraGridState extends State<CameraGrid> {
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),
-                TvFocusable(
+                _HeaderPill(
+                  icon: Icons.bug_report_outlined,
+                  label: 'Diagnostica',
                   onSelect: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const DiagnosticsScreen(),
                     ),
                   ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
-                    ),
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest,
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.bug_report_outlined, size: 20),
-                        SizedBox(width: 8),
-                        Text('Diagnostica', style: TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 12),
-                TvFocusable(
+                _HeaderPill(
+                  icon: Icons.logout,
+                  label: 'Esci',
                   onSelect: widget.onSignOut,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
-                    ),
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest,
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.logout, size: 20),
-                        SizedBox(width: 8),
-                        Text('Esci', style: TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -163,11 +133,14 @@ class _CameraGridState extends State<CameraGrid> {
         mainAxisSpacing: 20,
       ),
       itemCount: cameras.length,
-      itemBuilder: (context, index) => _CameraTile(
-        client: widget.client,
-        camera: cameras[index],
-        autofocus: index == 0,
-        onSessionExpired: widget.onSignOut,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.all(8),
+        child: _CameraTile(
+          client: widget.client,
+          camera: cameras[index],
+          autofocus: index == 0,
+          onSessionExpired: widget.onSignOut,
+        ),
       ),
     );
   }
@@ -260,7 +233,7 @@ class _CameraTileState extends State<_CameraTile> {
             right: 0,
             bottom: 0,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(16, 28, 16, 14),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
@@ -283,20 +256,97 @@ class _CameraTileState extends State<_CameraTile> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 19,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.1,
                       ),
                     ),
                   ),
                   if (widget.camera.batteryLife != null)
-                    Text(
-                      '${widget.camera.batteryLife}%',
-                      style: const TextStyle(fontSize: 17),
-                    ),
+                    _BatteryChip(percent: widget.camera.batteryLife!),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A rounded battery readout instead of bare text — a small chip reads as an
+/// intentional piece of UI, plain numbers read as an afterthought.
+class _BatteryChip extends StatelessWidget {
+  const _BatteryChip({required this.percent});
+
+  final int percent;
+
+  @override
+  Widget build(BuildContext context) {
+    final low = percent <= 20;
+    final color = low ? const Color(0xFFFF8A65) : const Color(0xFF4CAF7D);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(kPillRadius),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            low ? Icons.battery_alert : Icons.battery_std,
+            size: 15,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$percent%',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: color,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A rounded pill button for compact header actions (sign out, diagnostics).
+class _HeaderPill extends StatelessWidget {
+  const _HeaderPill({
+    required this.icon,
+    required this.label,
+    required this.onSelect,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return TvFocusable(
+      borderRadius: kPillRadius,
+      onSelect: onSelect,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -325,14 +375,23 @@ class _Message extends StatelessWidget {
             const SizedBox(height: 24),
             TvFocusable(
               autofocus: true,
+              borderRadius: kPillRadius,
               onSelect: onAction!,
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
+                  horizontal: 32,
                   vertical: 16,
                 ),
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: Text(label, style: const TextStyle(fontSize: 19)),
+                decoration: BoxDecoration(
+                  gradient: kAccentGradient(Theme.of(context).colorScheme),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],
