@@ -20,14 +20,14 @@ const _snapshotInterval = Duration(seconds: 30);
 
 /// The home screen: every camera as a tile, navigable with the D-pad.
 class CameraGrid extends StatefulWidget {
-  const CameraGrid({
-    super.key,
-    required this.client,
-    required this.onSessionExpired,
-  });
+  const CameraGrid({super.key, required this.client, required this.onSignOut});
 
   final RingClient client;
-  final VoidCallback onSessionExpired;
+
+  /// Clears the saved session and returns to the login screen. Used both when
+  /// Ring rejects the stored token and when the user picks "Esci" themselves —
+  /// the two cases end up in the same place, so they share one path.
+  final VoidCallback onSignOut;
 
   @override
   State<CameraGrid> createState() => _CameraGridState();
@@ -57,7 +57,7 @@ class _CameraGridState extends State<CameraGrid> {
       final cameras = await widget.client.cameras();
       if (mounted) setState(() => _cameras = cameras);
     } on RingSessionExpired {
-      if (mounted) widget.onSessionExpired();
+      if (mounted) widget.onSignOut();
     } on RingException catch (error) {
       if (mounted) setState(() => _error = error.message);
     }
@@ -71,9 +71,35 @@ class _CameraGridState extends State<CameraGrid> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Cameras',
-              style: Theme.of(context).textTheme.headlineMedium,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Cameras',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                ),
+                TvFocusable(
+                  onSelect: widget.onSignOut,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 12,
+                    ),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest,
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.logout, size: 20),
+                        SizedBox(width: 8),
+                        Text('Esci', style: TextStyle(fontSize: 16)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             UpdateBanner(service: _updates),
@@ -87,11 +113,7 @@ class _CameraGridState extends State<CameraGrid> {
   Widget _body() {
     final error = _error;
     if (error != null) {
-      return _Message(
-        text: error,
-        actionLabel: 'Retry',
-        onAction: _load,
-      );
+      return _Message(text: error, actionLabel: 'Retry', onAction: _load);
     }
 
     final cameras = _cameras;
@@ -104,17 +126,22 @@ class _CameraGridState extends State<CameraGrid> {
 
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 460,
+        // Kept fairly small on purpose: this delegate can only shrink the
+        // column count, never split a leftover into an extra one, so on a
+        // lower-resolution TV a large value here divides into too few
+        // columns and each tile balloons to fill the remainder. A smaller
+        // cap keeps that blow-up small across very different screen sizes.
+        maxCrossAxisExtent: 340,
         childAspectRatio: 16 / 11,
-        crossAxisSpacing: 24,
-        mainAxisSpacing: 24,
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
       ),
       itemCount: cameras.length,
       itemBuilder: (context, index) => _CameraTile(
         client: widget.client,
         camera: cameras[index],
         autofocus: index == 0,
-        onSessionExpired: widget.onSessionExpired,
+        onSessionExpired: widget.onSignOut,
       ),
     );
   }
@@ -176,9 +203,7 @@ class _CameraTileState extends State<_CameraTile> {
     // requests make Ring drop the stream.
     _timer?.cancel();
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => LiveView(camera: widget.camera),
-      ),
+      MaterialPageRoute<void>(builder: (_) => LiveView(camera: widget.camera)),
     );
     if (!mounted) return;
     _timer = Timer.periodic(_snapshotInterval, (_) => _refresh());

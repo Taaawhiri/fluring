@@ -47,7 +47,10 @@ class _LiveViewState extends State<LiveView> {
     // Drop any previous attempt before dialling again, so a retry never leaves
     // two sessions competing for the same camera.
     await _stream?.dispose();
-    final stream = RingLiveStream(auth: services.auth, cameraId: widget.camera.id);
+    final stream = RingLiveStream(
+      auth: services.auth,
+      cameraId: widget.camera.id,
+    );
     _stream = stream;
 
     try {
@@ -65,9 +68,14 @@ class _LiveViewState extends State<LiveView> {
       body: Focus(
         autofocus: true,
         onKeyEvent: (node, event) {
+          // The remote's actual Back button (goBack) must NOT be handled
+          // here: Android already routes it through the platform's back
+          // channel straight to Navigator.maybePop(), so also catching it as
+          // a raw key event pops twice for one press — once back to the
+          // grid, once more out of the app entirely. Only Escape (a plain
+          // keyboard, for testing off-device) needs a manual handler.
           if (event is KeyDownEvent &&
-              (event.logicalKey == LogicalKeyboardKey.escape ||
-                  event.logicalKey == LogicalKeyboardKey.goBack)) {
+              event.logicalKey == LogicalKeyboardKey.escape) {
             Navigator.of(context).maybePop();
             return KeyEventResult.handled;
           }
@@ -112,8 +120,10 @@ class _LiveViewState extends State<LiveView> {
               autofocus: true,
               onSelect: _connect,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 16,
+                ),
                 color: Theme.of(context).colorScheme.primaryContainer,
                 child: const Text('Retry', style: TextStyle(fontSize: 19)),
               ),

@@ -9,7 +9,9 @@ import 'src/ui/theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // TVs are landscape-only and have no system chrome worth keeping.
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft]);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+  ]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   runApp(const FluringApp());
 }
@@ -73,9 +75,6 @@ class _RootState extends State<_Root> {
       );
     }
 
-    return CameraGrid(
-      client: services.client,
-      onSessionExpired: _signOut,
-    );
+    return CameraGrid(client: services.client, onSignOut: _signOut);
   }
 }

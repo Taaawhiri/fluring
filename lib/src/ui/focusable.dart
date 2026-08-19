@@ -54,31 +54,38 @@ class _TvFocusableState extends State<TvFocusable> {
         widget.onSelect();
         return KeyEventResult.handled;
       },
-      child: GestureDetector(
-        onTap: widget.onSelect,
-        child: AnimatedScale(
-          scale: _focused ? 1.06 : 1,
-          duration: const Duration(milliseconds: 120),
-          child: AnimatedContainer(
+      // Without this, the focus zoom grows past this widget's own box and
+      // paints over whatever sits next to it — a grid of tiles has no spare
+      // room reserved for that, so a focused tile visibly overlapped its
+      // neighbours. Clipping to these bounds keeps the zoom inside the tile
+      // it belongs to, whatever size the tile ends up being.
+      child: ClipRect(
+        child: GestureDetector(
+          onTap: widget.onSelect,
+          child: AnimatedScale(
+            scale: _focused ? 1.04 : 1,
             duration: const Duration(milliseconds: 120),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.borderRadius),
-              border: Border.all(
-                color: _focused ? scheme.primary : Colors.transparent,
-                width: 3,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(widget.borderRadius),
+                border: Border.all(
+                  color: _focused ? scheme.primary : Colors.transparent,
+                  width: 3,
+                ),
+                boxShadow: _focused
+                    ? [
+                        BoxShadow(
+                          color: scheme.primary.withValues(alpha: 0.45),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : const [],
               ),
-              boxShadow: _focused
-                  ? [
-                      BoxShadow(
-                        color: scheme.primary.withValues(alpha: 0.45),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : const [],
+              clipBehavior: Clip.antiAlias,
+              child: widget.child,
             ),
-            clipBehavior: Clip.antiAlias,
-            child: widget.child,
           ),
         ),
       ),
