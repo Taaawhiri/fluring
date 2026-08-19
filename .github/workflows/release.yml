@@ -69,6 +69,19 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > android/key.properties
 
+          # Fail fast with a clear message rather than burning a full Gradle
+          # build to discover the password was mistyped or mispasted.
+          if ! keytool -list -storepass "$KEYSTORE_PASSWORD" \
+                -keystore android/app/release.jks > /dev/null 2>&1; then
+            echo "::error::KEYSTORE_PASSWORD does not open KEYSTORE_BASE64's keystore. Re-check both secrets for stray whitespace or truncation from copy-paste."
+            exit 1
+          fi
+          if ! keytool -list -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
+                -keystore android/app/release.jks -alias "$KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::KEY_PASSWORD or KEY_ALIAS is wrong for this keystore."
+            exit 1
+          fi
+
       - name: Resolve version
         id: version
         run: |
