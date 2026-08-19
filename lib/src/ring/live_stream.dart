@@ -46,18 +46,25 @@ class RingLiveStream {
   /// Opens the stream, completing when the first remote track arrives.
   ///
   /// Throws [RingException] if signalling fails or the camera never answers.
-  Future<void> start({Duration timeout = const Duration(seconds: 30)}) async {
-    await _renderer.initialize();
-    await _openSocket();
-    await _openPeer();
-    await _sendOffer();
-
-    return _connected.future.timeout(
+  Future<void> start({Duration timeout = const Duration(seconds: 30)}) {
+    // The whole sequence is bounded, not just the final handshake wait: an
+    // unreachable signalling host can hang the WebSocket connect step itself
+    // indefinitely, well before there is a connected socket to time out on.
+    // Without this, that case span forever with a spinner and no error.
+    return _start().timeout(
       timeout,
       onTimeout: () => throw const RingException(
         'The camera did not answer in time',
       ),
     );
+  }
+
+  Future<void> _start() async {
+    await _renderer.initialize();
+    await _openSocket();
+    await _openPeer();
+    await _sendOffer();
+    await _connected.future;
   }
 
   Future<void> _openSocket() async {
