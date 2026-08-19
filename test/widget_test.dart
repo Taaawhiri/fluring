@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fluring/src/ring/models.dart';
+import 'package:fluring/src/update/update_service.dart';
 
 void main() {
   group('RingCamera', () {
@@ -40,6 +41,34 @@ void main() {
       );
 
       expect(camera.description, 'Camera 7');
+    });
+  });
+
+  group('isVersionNewer', () {
+    test('accepts a higher patch', () {
+      expect(isVersionNewer('1.0.1', '1.0.0'), isTrue);
+    });
+
+    test('rejects the same version', () {
+      expect(isVersionNewer('1.2.3', '1.2.3'), isFalse);
+    });
+
+    test('rejects an older version', () {
+      expect(isVersionNewer('1.1.0', '1.2.0'), isFalse);
+    });
+
+    test('compares segments as numbers, not strings', () {
+      // The case a lexicographic comparison gets wrong.
+      expect(isVersionNewer('0.10.0', '0.9.0'), isTrue);
+    });
+
+    test('pads missing segments', () {
+      expect(isVersionNewer('1.1', '1.0.9'), isTrue);
+      expect(isVersionNewer('1.0', '1.0.0'), isFalse);
+    });
+
+    test('ignores a pre-release suffix', () {
+      expect(isVersionNewer('1.1.0-beta.1', '1.0.0'), isTrue);
     });
   });
 }

@@ -16,7 +16,9 @@ plugins {
 
 android {
     namespace = "com.fluring.fluring"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage requires API 37; Flutter's own default (36) is
+    // one behind, so it has to be raised explicitly rather than left implicit.
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -68,6 +70,11 @@ android {
             }
         }
     }
+}
+
+dependencies {
+    // FileProvider, used to share the downloaded APK with the installer.
+    implementation("androidx.core:core-ktx:1.13.1")
 }
 
 kotlin {

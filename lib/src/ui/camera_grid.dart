@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import '../ring/models.dart';
 import '../ring/ring_client.dart';
 import '../ring/ring_exceptions.dart';
+import '../update/update_service.dart';
 import 'focusable.dart';
 import 'live_view.dart';
+import 'update_banner.dart';
 import 'theme.dart';
 
 /// How often each tile pulls a new still.
@@ -32,6 +34,8 @@ class CameraGrid extends StatefulWidget {
 }
 
 class _CameraGridState extends State<CameraGrid> {
+  final _updates = UpdateService();
+
   List<RingCamera>? _cameras;
   String? _error;
 
@@ -39,6 +43,12 @@ class _CameraGridState extends State<CameraGrid> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _updates.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -66,6 +76,7 @@ class _CameraGridState extends State<CameraGrid> {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 24),
+            UpdateBanner(service: _updates),
             Expanded(child: _body()),
           ],
         ),

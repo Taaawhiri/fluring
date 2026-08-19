@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Downloaded APKs land in the app's cache directory, which is where
+         path_provider's getTemporaryDirectory() points. -->
+    <cache-path name="cache" path="."/>
+</paths>

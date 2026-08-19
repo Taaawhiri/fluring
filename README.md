@@ -54,14 +54,34 @@ Il workflow compila, esegue analisi e test, e allega l'APK alla release. Ogni
 push su qualsiasi branch fa comunque una build di verifica, il cui APK resta
 scaricabile fra gli artifact del run.
 
-Poi si scarica l'APK dalla release e lo si installa sulla TV:
+Poi si scarica l'APK dalla release e lo si installa sulla TV (solo la prima
+volta — dopo, l'app si aggiorna da sola, vedi sotto):
 
 ```bash
 adb connect <ip-della-tv>:5555
-adb install fluring-v0.1.0.apk
+adb install fluring.apk
 ```
 
 Sulla TV va prima abilitato il debug ADB in *Impostazioni → Opzioni sviluppatore*.
+
+### Link diretto e aggiornamento in app
+
+Ogni release pubblica l'asset con lo stesso nome (`fluring.apk`), quindi questo
+link punta sempre all'ultima versione, qualunque essa sia:
+
+```
+https://github.com/Taaawhiri/fluring/releases/latest/download/fluring.apk
+```
+
+È il link da usare in JDownloader (o qualsiasi altro downloader) per tenere
+sempre l'ultimo APK pronto, senza seguire manualmente le release.
+
+L'app stessa controlla questo link a ogni avvio: se la versione installata è
+più vecchia di quella pubblicata, mostra una barra in cima alla griglia con
+l'opzione di scaricare e installare l'aggiornamento. Android richiede comunque
+una conferma manuale dell'utente per ogni installazione (è un vincolo di
+sistema, non aggirabile): l'app arriva fino a presentare la schermata di
+installazione, l'ultimo tocco resta al telecomando.
 
 ### Chiave di firma
 
