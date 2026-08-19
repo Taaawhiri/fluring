@@ -1,23 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'src/platform/device_form_factor.dart';
 import 'src/ring/service_locator.dart';
 import 'src/ui/camera_grid.dart';
+import 'src/ui/login_screen.dart';
 import 'src/ui/qr_login_screen.dart';
 import 'src/ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // TVs are landscape-only and have no system chrome worth keeping.
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeLeft,
-  ]);
+
+  final isTv = await DeviceFormFactor.isTelevision();
+
+  // A TV has no comfortable keyboard and is always mounted landscape; a
+  // phone or tablet running the same APK is held upright and expects to
+  // stay that way, not get locked into the TV's orientation.
+  await SystemChrome.setPreferredOrientations(
+    isTv
+        ? [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
+        : [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
+  );
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  runApp(const FluringApp());
+  runApp(FluringApp(isTv: isTv));
 }
 
 class FluringApp extends StatelessWidget {
-  const FluringApp({super.key});
+  const FluringApp({super.key, required this.isTv});
+
+  final bool isTv;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +36,7 @@ class FluringApp extends StatelessWidget {
       title: 'Fluring',
       debugShowCheckedModeBanner: false,
       theme: buildTvTheme(),
-      home: const _Root(),
+      home: _Root(isTv: isTv),
     );
   }
 }
@@ -36,7 +47,9 @@ class FluringApp extends StatelessWidget {
 /// requests will surface an expired session, and gating the first frame on a
 /// network round-trip would just add a blank screen at every launch.
 class _Root extends StatefulWidget {
-  const _Root();
+  const _Root({required this.isTv});
+
+  final bool isTv;
 
   @override
   State<_Root> createState() => _RootState();
@@ -69,10 +82,19 @@ class _RootState extends State<_Root> {
     }
 
     if (!signedIn) {
-      return QrLoginScreen(
-        auth: services.auth,
-        onSignedIn: () => setState(() => _signedIn = true),
-      );
+      // The QR flow exists to dodge typing a password with a D-pad — on a
+      // phone or tablet the on-screen keyboard already does that job, so the
+      // plain email/password form is both simpler and one less thing that
+      // can fail (no local network, no LAN between two devices).
+      return widget.isTv
+          ? QrLoginScreen(
+              auth: services.auth,
+              onSignedIn: () => setState(() => _signedIn = true),
+            )
+          : LoginScreen(
+              auth: services.auth,
+              onSignedIn: () => setState(() => _signedIn = true),
+            );
     }
 
     return CameraGrid(client: services.client, onSignOut: _signOut);

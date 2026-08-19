@@ -1,6 +1,9 @@
 package com.fluring.fluring
 
+import android.app.UiModeManager
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -15,7 +18,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, INSTALLER_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "canInstall" -> result.success(canRequestInstalls())
@@ -37,6 +40,25 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PLATFORM_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isTelevision" -> result.success(isTelevision())
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    /**
+     * This is the official way Android tells a TV apart from a phone or
+     * tablet — UI_MODE_TYPE_TELEVISION is set by the platform itself on TV
+     * hardware/firmware, unlike screen size or DPI heuristics, which vary too
+     * much between devices to be trustworthy.
+     */
+    private fun isTelevision(): Boolean {
+        val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+        return uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
     }
 
     /** Below API 26 the permission is granted at install time, so it always holds. */
@@ -79,6 +101,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private companion object {
-        const val CHANNEL = "fluring/installer"
+        const val INSTALLER_CHANNEL = "fluring/installer"
+        const val PLATFORM_CHANNEL = "fluring/platform"
     }
 }
