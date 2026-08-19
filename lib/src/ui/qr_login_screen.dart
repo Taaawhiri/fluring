@@ -14,7 +14,11 @@ import 'theme.dart';
 /// default entry point; [LoginScreen] — the on-screen-keyboard form — stays
 /// reachable underneath for whoever has no second device handy.
 class QrLoginScreen extends StatefulWidget {
-  const QrLoginScreen({super.key, required this.auth, required this.onSignedIn});
+  const QrLoginScreen({
+    super.key,
+    required this.auth,
+    required this.onSignedIn,
+  });
 
   final RingAuth auth;
   final VoidCallback onSignedIn;
@@ -48,8 +52,9 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
     if (!mounted) return;
 
     if (url == null) {
-      setState(() => _error =
-          'Nessuna rete rilevata. Assicurati che la TV sia connessa al Wi-Fi o al cavo, oppure accedi con la tastiera.');
+      setState(
+        () => _error = 'Nessuna rete rilevata. Assicurati che la TV sia connessa al Wi-Fi o al cavo, oppure accedi con la tastiera.',
+      );
       return;
     }
     setState(() => _url = url);
@@ -63,7 +68,8 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
   void _useKeyboard() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => LoginScreen(auth: widget.auth, onSignedIn: widget.onSignedIn),
+        builder: (_) =>
+            LoginScreen(auth: widget.auth, onSignedIn: widget.onSignedIn),
       ),
     );
   }
@@ -79,7 +85,10 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Fluring', style: Theme.of(context).textTheme.headlineMedium),
+                Text(
+                  'Fluring',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Inquadra il codice con il telefono per accedere',
@@ -93,8 +102,13 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
                   autofocus: _url == null,
                   onSelect: _useKeyboard,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest,
                     child: const Text(
                       'Usa la tastiera invece',
                       style: TextStyle(fontSize: 18),
@@ -114,7 +128,10 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
     if (error != null) {
       return Text(
         error,
-        style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 17),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.error,
+          fontSize: 17,
+        ),
         textAlign: TextAlign.center,
       );
     }

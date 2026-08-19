@@ -5,6 +5,8 @@ import 'dart:math';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../diagnostics/diagnostic_log.dart';
+
 import 'ring_auth.dart';
 import 'ring_exceptions.dart';
 
@@ -22,10 +24,9 @@ const _pingInterval = Duration(seconds: 5);
 /// peer connection keeps the camera awake and drains its battery.
 class RingLiveStream {
   RingLiveStream({required RingAuth auth, required this.cameraId})
-      : _auth = auth; // ignore: prefer_initializing_formals
+    : _auth = auth; // ignore: prefer_initializing_formals
 
-  static const _signallingHost =
-      'api.prod.signalling.ring.devices.a2z.com';
+  static const _signallingHost = 'api.prod.signalling.ring.devices.a2z.com';
 
   final RingAuth _auth;
   final int cameraId;
@@ -53,22 +54,25 @@ class RingLiveStream {
     // Without this, that case span forever with a spinner and no error.
     return _start().timeout(
       timeout,
-      onTimeout: () => throw const RingException(
-        'The camera did not answer in time',
-      ),
+      onTimeout: () =>
+          throw const RingException('The camera did not answer in time'),
     );
   }
 
   Future<void> _start() async {
+    DiagnosticLog.add('live[$cameraId]: starting');
     await _renderer.initialize();
     await _openSocket();
     await _openPeer();
     await _sendOffer();
     await _connected.future;
+    DiagnosticLog.add('live[$cameraId]: track received, connected');
   }
 
   Future<void> _openSocket() async {
+    DiagnosticLog.add('live[$cameraId]: requesting access token');
     final token = await _auth.accessToken();
+    DiagnosticLog.add('live[$cameraId]: got token, opening signalling socket');
     final uri = Uri(
       scheme: 'wss',
       host: _signallingHost,
@@ -83,11 +87,18 @@ class RingLiveStream {
 
     final socket = WebSocketChannel.connect(uri);
     await socket.ready;
+    DiagnosticLog.add('live[$cameraId]: signalling socket open');
     _socket = socket;
     _messages = socket.stream.listen(
       _onMessage,
-      onError: (Object error) => _fail(RingException('Signalling error: $error')),
-      onDone: () => _fail(const RingException('Ring closed the connection')),
+      onError: (Object error) {
+        DiagnosticLog.add('live[$cameraId]: socket error: $error');
+        _fail(RingException('Signalling error: $error'));
+      },
+      onDone: () {
+        DiagnosticLog.add('live[$cameraId]: socket closed by peer');
+        _fail(const RingException('Ring closed the connection'));
+      },
     );
   }
 
@@ -131,6 +142,7 @@ class RingLiveStream {
     };
 
     peer.onConnectionState = (RTCPeerConnectionState state) {
+      DiagnosticLog.add('live[$cameraId]: peer connection state -> $state');
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         _fail(const RingException('Video connection failed'));
       }
@@ -143,6 +155,7 @@ class RingLiveStream {
     final peer = _peer!;
     final offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
+    DiagnosticLog.add('live[$cameraId]: sending offer via live_view');
 
     _send({
       'method': 'live_view',
@@ -178,23 +191,31 @@ class RingLiveStream {
     final body = message['body'];
     final fields = body is Map<String, dynamic> ? body : const {};
 
+    DiagnosticLog.add("live[$cameraId]: received '${message['method']}'");
     switch (message['method']) {
       case 'sdp':
         final sdp = fields['sdp'];
         if (sdp is String) {
-          await _peer?.setRemoteDescription(RTCSessionDescription(sdp, 'answer'));
+          await _peer?.setRemoteDescription(
+            RTCSessionDescription(sdp, 'answer'),
+          );
+          DiagnosticLog.add('live[$cameraId]: remote SDP applied');
         }
       case 'ice':
         final ice = fields['ice'];
         if (ice is String) {
-          await _peer?.addCandidate(RTCIceCandidate(
-            ice,
-            null,
-            (fields['mlineindex'] as num?)?.toInt() ?? 0,
-          ));
+          await _peer?.addCandidate(
+            RTCIceCandidate(
+              ice,
+              null,
+              (fields['mlineindex'] as num?)?.toInt() ?? 0,
+            ),
+          );
         }
       case 'close':
-        _fail(RingException(_closeReason(fields)));
+        final reason = _closeReason(fields);
+        DiagnosticLog.add('live[$cameraId]: close received: $reason');
+        _fail(RingException(reason));
     }
   }
 
@@ -208,6 +229,7 @@ class RingLiveStream {
   }
 
   void _fail(RingException error) {
+    DiagnosticLog.add('live[$cameraId]: failing with: ${error.message}');
     if (!_connected.isCompleted) _connected.completeError(error);
   }
 

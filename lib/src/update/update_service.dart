@@ -26,7 +26,7 @@ class AvailableUpdate {
 /// confirmation the user accepts with the remote.
 class UpdateService {
   UpdateService({http.Client? httpClient})
-      : _http = httpClient ?? http.Client();
+    : _http = httpClient ?? http.Client();
 
   /// Public repository, so the API needs no token. Unauthenticated GitHub
   /// requests are rate-limited by IP, which a once-per-launch check stays well
@@ -46,10 +46,12 @@ class UpdateService {
   /// cameras, so any error simply means "no update known right now".
   Future<AvailableUpdate?> check() async {
     try {
-      final response = await _http.get(
-        Uri.parse(_latestReleaseUrl),
-        headers: {'Accept': 'application/vnd.github+json'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await _http
+          .get(
+            Uri.parse(_latestReleaseUrl),
+            headers: {'Accept': 'application/vnd.github+json'},
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) return null;
 

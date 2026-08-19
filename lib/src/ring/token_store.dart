@@ -10,7 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// a new device (which would re-trigger 2FA).
 class TokenStore {
   TokenStore({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   static const _refreshTokenKey = 'ring_refresh_token';
   static const _hardwareIdKey = 'ring_hardware_id';

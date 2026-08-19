@@ -88,7 +88,12 @@ class _UpdateBannerState extends State<UpdateBanner> {
             children: [
               Icon(Icons.system_update, color: scheme.primary),
               const SizedBox(width: 16),
-              Expanded(child: Text(_message(update), style: const TextStyle(fontSize: 19))),
+              Expanded(
+                child: Text(
+                  _message(update),
+                  style: const TextStyle(fontSize: 19),
+                ),
+              ),
               if (_stage == _Stage.downloading)
                 SizedBox(
                   width: 160,
@@ -104,11 +109,11 @@ class _UpdateBannerState extends State<UpdateBanner> {
   }
 
   String _message(AvailableUpdate update) => switch (_stage) {
-        _Stage.downloading =>
-          'Downloading version ${update.version}… ${(_progress * 100).round()}%',
-        _Stage.needsPermission =>
-          'Allow Fluring to install apps, then select this again',
-        _Stage.failed => 'Update failed — select to try again',
-        _Stage.idle => 'Version ${update.version} is available — select to update',
-      };
+    _Stage.downloading =>
+      'Downloading version ${update.version}… ${(_progress * 100).round()}%',
+    _Stage.needsPermission =>
+      'Allow Fluring to install apps, then select this again',
+    _Stage.failed => 'Update failed — select to try again',
+    _Stage.idle => 'Version ${update.version} is available — select to update',
+  };
 }

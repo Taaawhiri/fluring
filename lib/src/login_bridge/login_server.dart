@@ -26,7 +26,8 @@ import '../ring/ring_exceptions.dart';
 /// The server binds only for the few minutes login takes and shuts itself
 /// down the moment it succeeds.
 class LoginServer {
-  LoginServer({required RingAuth auth}) : _auth = auth; // ignore: prefer_initializing_formals
+  LoginServer({required RingAuth auth})
+    : _auth = auth; // ignore: prefer_initializing_formals
 
   final RingAuth _auth;
 
@@ -183,7 +184,9 @@ class LoginServer {
 ''';
 
   String _challengeHint(RingTwoFactorRequired challenge) {
-    if (challenge.isTotp) return 'Inserisci il codice dalla tua app di autenticazione';
+    if (challenge.isTotp) {
+      return 'Inserisci il codice dalla tua app di autenticazione';
+    }
     final phone = challenge.phone;
     return phone == null
         ? 'Inserisci il codice che Ring ti ha inviato'

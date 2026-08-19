@@ -174,8 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                           : Text(
                               challenge == null ? 'Sign in' : 'Confirm',
-                              style:
-                                  Theme.of(context).textTheme.labelLarge,
+                              style: Theme.of(context).textTheme.labelLarge,
                             ),
                     ),
                   ),
@@ -217,8 +216,10 @@ class _LoginScreenState extends State<LoginScreen> {
         labelText: label,
         labelStyle: const TextStyle(fontSize: 18),
         border: const OutlineInputBorder(),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 20,
+        ),
       ),
       onSubmitted: (_) => _submit(),
     );

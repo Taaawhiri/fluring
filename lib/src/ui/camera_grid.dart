@@ -9,6 +9,7 @@ import '../ring/ring_exceptions.dart';
 import '../update/update_service.dart';
 import 'focusable.dart';
 import 'live_view.dart';
+import 'diagnostics_screen.dart';
 import 'update_banner.dart';
 import 'theme.dart';
 
@@ -79,6 +80,31 @@ class _CameraGridState extends State<CameraGrid> {
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),
+                TvFocusable(
+                  onSelect: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const DiagnosticsScreen(),
+                    ),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 12,
+                    ),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest,
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bug_report_outlined, size: 20),
+                        SizedBox(width: 8),
+                        Text('Diagnostica', style: TextStyle(fontSize: 16)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 TvFocusable(
                   onSelect: widget.onSignOut,
                   child: Container(

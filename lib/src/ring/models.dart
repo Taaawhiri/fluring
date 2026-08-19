@@ -10,8 +10,10 @@ class RingCamera {
 
   /// Ring's device list groups cameras under several keys; [isDoorbell] records
   /// which group this one came from so the UI can badge it.
-  factory RingCamera.fromJson(Map<String, dynamic> json,
-      {required bool isDoorbell}) {
+  factory RingCamera.fromJson(
+    Map<String, dynamic> json, {
+    required bool isDoorbell,
+  }) {
     return RingCamera(
       id: (json['id'] as num).toInt(),
       description: (json['description'] as String?)?.trim().isNotEmpty == true

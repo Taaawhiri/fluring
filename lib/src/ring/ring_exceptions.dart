@@ -25,10 +25,8 @@ class RingAuthException extends RingException {
 /// [phone] is the masked destination Ring reports (e.g. "+39 ***-**-1234") and
 /// [tsvState] tells us how the code was delivered ("sms", "totp", ...).
 class RingTwoFactorRequired extends RingException {
-  const RingTwoFactorRequired({
-    required this.phone,
-    required this.tsvState,
-  }) : super('Two-factor verification required');
+  const RingTwoFactorRequired({required this.phone, required this.tsvState})
+    : super('Two-factor verification required');
 
   final String? phone;
   final String? tsvState;

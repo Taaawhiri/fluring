@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../diagnostics/diagnostic_log.dart';
 import 'ring_exceptions.dart';
 import 'token_store.dart';
 
@@ -19,11 +20,9 @@ import 'token_store.dart';
 /// a new device and re-triggers two-factor, which would defeat the whole point
 /// of persisting the token on a TV the user rarely types on.
 class RingAuth {
-  RingAuth({
-    required TokenStore store,
-    http.Client? httpClient,
-  })  : _store = store, // ignore: prefer_initializing_formals
-        _http = httpClient ?? http.Client();
+  RingAuth({required TokenStore store, http.Client? httpClient})
+    : _store = store, // ignore: prefer_initializing_formals
+      _http = httpClient ?? http.Client();
 
   static const _oauthUrl = 'https://oauth.ring.com/oauth/token';
   static const _clientId = 'ring_official_android';
@@ -93,6 +92,7 @@ class RingAuth {
     );
 
     if (response.statusCode == 412 || _needsTwoFactor(response)) {
+      DiagnosticLog.add('auth: 2FA required');
       final body = _decode(response);
       throw RingTwoFactorRequired(
         phone: body['phone'] as String?,
@@ -100,12 +100,15 @@ class RingAuth {
       );
     }
     if (response.statusCode == 401 || response.statusCode == 400) {
+      DiagnosticLog.add('auth: login rejected (HTTP ${response.statusCode})');
       throw RingAuthException(_errorMessage(response));
     }
     if (response.statusCode != 200 && response.statusCode != 201) {
+      DiagnosticLog.add('auth: login failed (HTTP ${response.statusCode})');
       throw RingException('Login failed (HTTP ${response.statusCode})');
     }
 
+    DiagnosticLog.add('auth: login succeeded');
     await _adopt(_decode(response));
   }
 
@@ -129,8 +132,10 @@ class RingAuth {
   Future<String> _refresh() async {
     final refreshToken = await _store.readRefreshToken();
     if (refreshToken == null) {
+      DiagnosticLog.add('auth: refresh skipped, no stored token');
       throw const RingSessionExpired();
     }
+    DiagnosticLog.add('auth: refreshing access token');
 
     final response = await _http.post(
       Uri.parse(_oauthUrl),
@@ -151,13 +156,16 @@ class RingAuth {
     // A refresh token that Ring no longer honours is not a transient failure:
     // clear it so the app asks for a fresh login instead of retrying forever.
     if (response.statusCode == 401 || response.statusCode == 400) {
+      DiagnosticLog.add('auth: refresh token rejected, clearing session');
       await _store.clearRefreshToken();
       throw const RingSessionExpired();
     }
     if (response.statusCode != 200 && response.statusCode != 201) {
+      DiagnosticLog.add('auth: refresh failed (HTTP ${response.statusCode})');
       throw RingException('Token refresh failed (HTTP ${response.statusCode})');
     }
 
+    DiagnosticLog.add('auth: refresh succeeded');
     await _adopt(_decode(response));
     return _accessToken!;
   }

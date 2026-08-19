@@ -14,8 +14,8 @@ import 'ring_exceptions.dart';
 /// when streaming misbehaves on a weak TV chipset.
 class RingClient {
   RingClient({required RingAuth auth, http.Client? httpClient})
-      : _auth = auth, // ignore: prefer_initializing_formals
-        _http = httpClient ?? http.Client();
+    : _auth = auth, // ignore: prefer_initializing_formals
+      _http = httpClient ?? http.Client();
 
   static const _base = 'https://api.ring.com/clients_api';
 
@@ -31,7 +31,9 @@ class RingClient {
 
     if (response.statusCode == 401) throw const RingSessionExpired();
     if (response.statusCode != 200) {
-      throw RingException('Could not load devices (HTTP ${response.statusCode})');
+      throw RingException(
+        'Could not load devices (HTTP ${response.statusCode})',
+      );
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
