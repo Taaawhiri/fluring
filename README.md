@@ -42,15 +42,17 @@ lib/src/ui/       schermate: login, griglia, live view, focus D-pad
 L'APK viene compilato da GitHub Actions e pubblicato nelle
 [Releases](../../releases): non serve avere l'Android SDK in locale.
 
-Per pubblicare una nuova versione basta un tag:
+Per pubblicare una nuova versione, dalla tab *Actions → Release APK → Run
+workflow*, indicando la versione (es. `v0.1.0`): il workflow crea da sé il tag e
+la release. In alternativa, da riga di comando:
 
 ```bash
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-Il workflow compila, esegue analisi e test, e allega l'APK alla release. Un run
-manuale (`workflow_dispatch`) lascia invece l'APK fra gli artifact del workflow,
-senza creare una release.
+Il workflow compila, esegue analisi e test, e allega l'APK alla release. Ogni
+push su qualsiasi branch fa comunque una build di verifica, il cui APK resta
+scaricabile fra gli artifact del run.
 
 Poi si scarica l'APK dalla release e lo si installa sulla TV:
 
