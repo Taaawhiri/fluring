@@ -24,15 +24,42 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController();
   final _code = TextEditingController();
 
+  final _emailFocus = FocusNode();
+  final _codeFocus = FocusNode();
+
   bool _busy = false;
   String? _error;
   RingTwoFactorRequired? _challenge;
+
+  @override
+  void initState() {
+    super.initState();
+    // TextField's autofocus alone often loses the race against this screen's
+    // own push transition on Android TV: the platform focus doesn't settle
+    // until the animation finishes, so a plain autofocus can land on nothing.
+    // Requesting it explicitly after the first frame, once the route has
+    // finished animating in, is what actually sticks.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ModalRoute.of(context)?.animation?.addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          _emailFocus.requestFocus();
+        }
+      });
+      // Covers the case where the route is already settled by the first
+      // frame (e.g. this screen was not pushed, just built directly).
+      if (ModalRoute.of(context)?.animation?.isCompleted ?? true) {
+        _emailFocus.requestFocus();
+      }
+    });
+  }
 
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
     _code.dispose();
+    _emailFocus.dispose();
+    _codeFocus.dispose();
     super.dispose();
   }
 
@@ -103,8 +130,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 if (challenge == null) ...[
                   _field(
                     controller: _email,
+                    focusNode: _emailFocus,
                     label: 'Email',
-                    autofocus: true,
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 16),
@@ -116,6 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ] else
                   _field(
                     controller: _code,
+                    focusNode: _codeFocus,
                     label: 'Verification code',
                     autofocus: true,
                     keyboardType: TextInputType.number,
@@ -173,12 +201,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _field({
     required TextEditingController controller,
     required String label,
+    FocusNode? focusNode,
     bool obscure = false,
     bool autofocus = false,
     TextInputType? keyboardType,
   }) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       obscureText: obscure,
       autofocus: autofocus,
       keyboardType: keyboardType,
