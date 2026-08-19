@@ -37,18 +37,62 @@ lib/src/ring/     client Ring: auth OAuth, device list, snapshot, WebRTC
 lib/src/ui/       schermate: login, griglia, live view, focus D-pad
 ```
 
-## Compilare
+## Installare
+
+L'APK viene compilato da GitHub Actions e pubblicato nelle
+[Releases](../../releases): non serve avere l'Android SDK in locale.
+
+Per pubblicare una nuova versione basta un tag:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+Il workflow compila, esegue analisi e test, e allega l'APK alla release. Un run
+manuale (`workflow_dispatch`) lascia invece l'APK fra gli artifact del workflow,
+senza creare una release.
+
+Poi si scarica l'APK dalla release e lo si installa sulla TV:
+
+```bash
+adb connect <ip-della-tv>:5555
+adb install fluring-v0.1.0.apk
+```
+
+Sulla TV va prima abilitato il debug ADB in *Impostazioni → Opzioni sviluppatore*.
+
+### Chiave di firma
+
+Senza segreti configurati il workflow firma con le chiavi di debug: l'APK si
+installa, ma essendo rigenerate a ogni run **non potrà aggiornare
+un'installazione precedente** — andrebbe disinstallato e reinstallato, perdendo
+la sessione Ring salvata.
+
+Per una chiave stabile, generala una volta:
+
+```bash
+keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 \
+  -validity 10000 -alias fluring
+base64 -w0 release.jks
+```
+
+e aggiungi in *Settings → Secrets and variables → Actions* del repository:
+
+| Secret | Valore |
+| --- | --- |
+| `KEYSTORE_BASE64` | l'output del comando `base64` |
+| `KEYSTORE_PASSWORD` | la password del keystore |
+| `KEY_ALIAS` | `fluring` |
+| `KEY_PASSWORD` | la password della chiave |
+
+Conserva `release.jks`: perdendolo non potrai più pubblicare aggiornamenti
+installabili sopra quelli già distribuiti.
+
+### Compilare in locale
 
 ```bash
 flutter pub get
 flutter build apk --release
-```
-
-Serve l'Android SDK installato. L'APK si installa sulla TV con:
-
-```bash
-adb connect <ip-della-tv>:5555
-adb install build/app/outputs/flutter-apk/app-release.apk
 ```
 
 ## Navigazione col telecomando
