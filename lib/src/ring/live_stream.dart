@@ -53,6 +53,17 @@ class RingLiveStream {
   /// Renders the remote track once [start] resolves.
   RTCVideoRenderer get renderer => _renderer;
 
+  /// Silences or restores the camera's incoming audio.
+  ///
+  /// Disabling the track rather than detaching it: the track keeps arriving
+  /// over the connection either way, this only stops it from playing, so
+  /// toggling back on is instant with no renegotiation.
+  void setMuted(bool muted) {
+    for (final track in _renderer.srcObject?.getAudioTracks() ?? const []) {
+      track.enabled = !muted;
+    }
+  }
+
   /// Opens the stream, completing when the first remote track arrives.
   ///
   /// Throws [RingException] if signalling fails or the camera never answers.

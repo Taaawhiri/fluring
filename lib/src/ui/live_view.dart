@@ -26,6 +26,7 @@ class _LiveViewState extends State<LiveView> {
   RingLiveStream? _stream;
   String? _error;
   bool _ready = false;
+  bool _muted = false;
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _LiveViewState extends State<LiveView> {
     setState(() {
       _error = null;
       _ready = false;
+      _muted = false;
     });
 
     // Drop any previous attempt before dialling again, so a retry never leaves
@@ -99,6 +101,7 @@ class _LiveViewState extends State<LiveView> {
               ),
             ),
             if (_ready) _liveBadge(context),
+            if (_ready) _muteButton(context),
             if (_ready) _closeButton(context),
           ],
         ),
@@ -143,6 +146,29 @@ class _LiveViewState extends State<LiveView> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _toggleMute() {
+    final muted = !_muted;
+    _stream?.setMuted(muted);
+    setState(() => _muted = muted);
+  }
+
+  Widget _muteButton(BuildContext context) {
+    return Positioned(
+      right: 48,
+      top: 84,
+      child: TvFocusable(
+        borderRadius: kShapeMd,
+        onSelect: _toggleMute,
+        child: Container(
+          width: 52,
+          height: 52,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: Icon(_muted ? Icons.volume_off : Icons.volume_up, size: 24),
         ),
       ),
     );
