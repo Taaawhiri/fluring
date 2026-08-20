@@ -98,7 +98,76 @@ class _LiveViewState extends State<LiveView> {
                 ),
               ),
             ),
+            if (_ready) _liveBadge(context),
+            if (_ready) _closeButton(context),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// A tertiary-container badge — the same "asks for attention" color the
+  /// battery chip uses when low, reserved for states like this rather than
+  /// spent as a second decorative accent.
+  Widget _liveBadge(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Positioned(
+      right: 48,
+      top: 32,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: scheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(kPillRadius),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: scheme.tertiary,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: scheme.tertiary, blurRadius: 6)],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'LIVE',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                color: scheme.tertiary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// A visible way to leave the stream, not just the remote's Back button —
+  /// which some remotes map inconsistently, and which a first-time viewer
+  /// has no reason to expect closes a full-screen video.
+  Widget _closeButton(BuildContext context) {
+    return Positioned(
+      bottom: 40,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: TvFocusable(
+          borderRadius: kShapeLg,
+          onSelect: () => Navigator.of(context).maybePop(),
+          child: Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              gradient: kAccentGradient(Theme.of(context).colorScheme),
+            ),
+            child: const Icon(Icons.close, size: 28),
+          ),
         ),
       ),
     );

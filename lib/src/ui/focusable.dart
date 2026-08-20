@@ -19,12 +19,22 @@ class TvFocusable extends StatefulWidget {
     required this.onSelect,
     this.autofocus = false,
     this.borderRadius = kSurfaceRadius,
-  });
+    double? focusRadius,
+  }) : focusRadius = focusRadius ?? borderRadius;
 
   final Widget child;
   final VoidCallback onSelect;
   final bool autofocus;
+
+  /// The shape at rest.
   final double borderRadius;
+
+  /// The shape once focused. Left unset, focus is only a border and a glow;
+  /// a larger value here makes focus a shape change too — the "morph"
+  /// Material You uses so state reads even with color and motion off, and
+  /// pill controls (which are already fully round) simply have nowhere
+  /// further to go.
+  final double focusRadius;
 
   @override
   State<TvFocusable> createState() => _TvFocusableState();
@@ -72,7 +82,9 @@ class _TvFocusableState extends State<TvFocusable> {
             duration: const Duration(milliseconds: 140),
             curve: Curves.easeOutCubic,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.borderRadius),
+              borderRadius: BorderRadius.circular(
+                _focused ? widget.focusRadius : widget.borderRadius,
+              ),
               border: Border.all(
                 color: _focused ? scheme.primary : Colors.white10,
                 width: _focused ? 3 : 1,

@@ -215,6 +215,11 @@ class _CameraTileState extends State<_CameraTile> {
 
     return TvFocusable(
       autofocus: widget.autofocus,
+      // The shape itself changes on focus, not just the border — the
+      // Material You "morph" that reads as state even before color or
+      // motion register.
+      borderRadius: kShapeMd,
+      focusRadius: kShapeXl,
       onSelect: _openLive,
       child: Stack(
         fit: StackFit.expand,
