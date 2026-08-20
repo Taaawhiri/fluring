@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../diagnostics/diagnostic_log.dart';
@@ -27,6 +28,14 @@ class RingLiveStream {
     : _auth = auth; // ignore: prefer_initializing_formals
 
   static const _signallingHost = 'api.prod.signalling.ring.devices.a2z.com';
+
+  /// Where the short-lived signalling ticket comes from. This is a separate
+  /// host from the rest of the Ring API (`api.ring.com`) — easy to miss, and
+  /// missing it is exactly what left the socket connect hanging forever: the
+  /// signalling server expects this ticket as its `token` parameter, not the
+  /// account's own OAuth access token.
+  static const _ticketUrl =
+      'https://prd-api-us.prd.rings.solutions/api/v1/clap/ticket/request/signalsocket';
 
   final RingAuth _auth;
   final int cameraId;
@@ -70,9 +79,9 @@ class RingLiveStream {
   }
 
   Future<void> _openSocket() async {
-    DiagnosticLog.add('live[$cameraId]: requesting access token');
-    final token = await _auth.accessToken();
-    DiagnosticLog.add('live[$cameraId]: got token, opening signalling socket');
+    DiagnosticLog.add('live[$cameraId]: requesting signalling ticket');
+    final ticket = await _requestSignallingTicket();
+    DiagnosticLog.add('live[$cameraId]: got ticket, opening signalling socket');
     final uri = Uri(
       scheme: 'wss',
       host: _signallingHost,
@@ -81,7 +90,7 @@ class RingLiveStream {
         'api_version': '4.0',
         'auth_type': 'ring_solutions',
         'client_id': 'ring_site-${_randomUuid()}',
-        'token': token,
+        'token': ticket,
       },
     );
 
@@ -100,6 +109,32 @@ class RingLiveStream {
         _fail(const RingException('Ring closed the connection'));
       },
     );
+  }
+
+  /// Fetches the one-time ticket the signalling server requires.
+  ///
+  /// Same auth headers as every other Ring API call, but a different host
+  /// entirely from `api.ring.com` — the two are easy to conflate since
+  /// nothing about the ticket endpoint's name suggests it lives elsewhere.
+  Future<String> _requestSignallingTicket() async {
+    final headers = await _auth.authHeaders();
+    final response = await http.post(Uri.parse(_ticketUrl), headers: headers);
+
+    if (response.statusCode == 401) {
+      throw const RingSessionExpired();
+    }
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw RingException(
+        'Could not get a signalling ticket (HTTP ${response.statusCode})',
+      );
+    }
+
+    final body = jsonDecode(response.body);
+    final ticket = body is Map<String, dynamic> ? body['ticket'] : null;
+    if (ticket is! String) {
+      throw const RingException('Ring did not return a signalling ticket');
+    }
+    return ticket;
   }
 
   Future<void> _openPeer() async {
