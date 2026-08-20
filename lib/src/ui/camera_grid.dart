@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../ring/models.dart';
 import '../ring/ring_client.dart';
@@ -39,11 +40,22 @@ class _CameraGridState extends State<CameraGrid> {
 
   List<RingCamera>? _cameras;
   String? _error;
+  String? _version;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadVersion();
+  }
+
+  // Shown in the header so there is a way to confirm which build is actually
+  // installed — an in-app update can silently fail to complete (the system
+  // installer's confirmation dialog missed, or Play Protect blocking it) with
+  // no obvious sign anything went wrong.
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) setState(() => _version = 'v${info.version}');
   }
 
   @override
@@ -75,9 +87,26 @@ class _CameraGridState extends State<CameraGrid> {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    'Cameras',
-                    style: Theme.of(context).textTheme.headlineMedium,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        'Cameras',
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      if (_version != null) ...[
+                        const SizedBox(width: 12),
+                        Text(
+                          _version!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white38,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 _HeaderPill(
