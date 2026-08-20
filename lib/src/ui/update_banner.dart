@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../update/installer.dart';
@@ -6,36 +8,69 @@ import 'focusable.dart';
 
 /// Offers the newer release at the top of the camera grid.
 ///
-/// Deliberately unobtrusive: updating is never urgent enough to block the
-/// cameras behind a dialog, so this is a strip the user can simply ignore.
+/// Checks silently once at launch — deliberately unobtrusive, since updating
+/// is never urgent enough to interrupt someone who just wants to see their
+/// cameras. [UpdateBannerState.checkNow] lets something else (the header's
+/// "Aggiorna" button) trigger the same check on demand, so finding out
+/// whether a build is current doesn't require relaunching the app.
 class UpdateBanner extends StatefulWidget {
   const UpdateBanner({super.key, required this.service});
 
   final UpdateService service;
 
   @override
-  State<UpdateBanner> createState() => _UpdateBannerState();
+  UpdateBannerState createState() => UpdateBannerState();
 }
 
-enum _Stage { idle, downloading, needsPermission, failed }
+enum _Stage { idle, checking, upToDate, downloading, needsPermission, failed }
 
-class _UpdateBannerState extends State<UpdateBanner> {
+class UpdateBannerState extends State<UpdateBanner> {
   static const _installer = Installer();
 
   AvailableUpdate? _update;
   _Stage _stage = _Stage.idle;
   double _progress = 0;
+  Timer? _autoHide;
 
   @override
   void initState() {
     super.initState();
-    _check();
+    _check(silent: true);
   }
 
-  Future<void> _check() async {
+  @override
+  void dispose() {
+    _autoHide?.cancel();
+    super.dispose();
+  }
+
+  /// Re-runs the check right now, showing "checking" and then a brief
+  /// "up to date" confirmation if nothing changed — the visible feedback a
+  /// silent launch-time check doesn't need, but a manual one does.
+  Future<void> checkNow() => _check(silent: false);
+
+  Future<void> _check({required bool silent}) async {
+    _autoHide?.cancel();
+    if (!silent && mounted) setState(() => _stage = _Stage.checking);
+
     // Never throws by contract; null simply means nothing to offer.
     final update = await widget.service.check();
-    if (mounted && update != null) setState(() => _update = update);
+    if (!mounted) return;
+
+    if (update != null) {
+      setState(() {
+        _update = update;
+        _stage = _Stage.idle;
+      });
+      return;
+    }
+
+    if (silent) return;
+
+    setState(() => _stage = _Stage.upToDate);
+    _autoHide = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _stage = _Stage.idle);
+    });
   }
 
   Future<void> _install() async {
@@ -73,47 +108,57 @@ class _UpdateBannerState extends State<UpdateBanner> {
   @override
   Widget build(BuildContext context) {
     final update = _update;
-    if (update == null) return const SizedBox.shrink();
+    final visible =
+        update != null ||
+        _stage == _Stage.checking ||
+        _stage == _Stage.upToDate;
+    if (!visible) return const SizedBox.shrink();
 
     final scheme = Theme.of(context).colorScheme;
+    final selectable = update != null;
+
+    final content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      color: scheme.surfaceContainerHighest,
+      child: Row(
+        children: [
+          Icon(Icons.system_update, color: scheme.primary),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(_message(update), style: const TextStyle(fontSize: 19)),
+          ),
+          if (_stage == _Stage.downloading)
+            SizedBox(
+              width: 160,
+              child: LinearProgressIndicator(
+                value: _progress > 0 ? _progress : null,
+              ),
+            ),
+        ],
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
-      child: TvFocusable(
-        onSelect: _install,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          color: scheme.surfaceContainerHighest,
-          child: Row(
-            children: [
-              Icon(Icons.system_update, color: scheme.primary),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  _message(update),
-                  style: const TextStyle(fontSize: 19),
-                ),
-              ),
-              if (_stage == _Stage.downloading)
-                SizedBox(
-                  width: 160,
-                  child: LinearProgressIndicator(
-                    value: _progress > 0 ? _progress : null,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+      // Only a real, installable update is a target for the D-pad — "checking"
+      // and "up to date" are just status, nothing to select.
+      child: selectable
+          ? TvFocusable(onSelect: _install, child: content)
+          : content,
     );
   }
 
-  String _message(AvailableUpdate update) => switch (_stage) {
+  String _message(AvailableUpdate? update) => switch (_stage) {
+    _Stage.checking => 'Controllo aggiornamenti…',
+    _Stage.upToDate => 'Hai già la versione più recente',
     _Stage.downloading =>
-      'Downloading version ${update.version}… ${(_progress * 100).round()}%',
+      'Download versione ${update!.version}… ${(_progress * 100).round()}%',
     _Stage.needsPermission =>
-      'Allow Fluring to install apps, then select this again',
-    _Stage.failed => 'Update failed — select to try again',
-    _Stage.idle => 'Version ${update.version} is available — select to update',
+      'Consenti a Fluring di installare app, poi seleziona di nuovo',
+    _Stage.failed => 'Aggiornamento fallito — seleziona per riprovare',
+    _Stage.idle =>
+      update == null
+          ? ''
+          : 'Versione ${update.version} disponibile — seleziona per aggiornare',
   };
 }

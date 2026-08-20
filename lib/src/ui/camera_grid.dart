@@ -9,7 +9,6 @@ import '../ring/ring_exceptions.dart';
 import '../update/update_service.dart';
 import 'focusable.dart';
 import 'live_view.dart';
-import 'diagnostics_screen.dart';
 import 'update_banner.dart';
 import 'theme.dart';
 
@@ -36,6 +35,7 @@ class CameraGrid extends StatefulWidget {
 
 class _CameraGridState extends State<CameraGrid> {
   final _updates = UpdateService();
+  final _updateBannerKey = GlobalKey<UpdateBannerState>();
 
   List<RingCamera>? _cameras;
   String? _error;
@@ -81,13 +81,9 @@ class _CameraGridState extends State<CameraGrid> {
                   ),
                 ),
                 _HeaderPill(
-                  icon: Icons.bug_report_outlined,
-                  label: 'Diagnostica',
-                  onSelect: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const DiagnosticsScreen(),
-                    ),
-                  ),
+                  icon: Icons.system_update,
+                  label: 'Aggiorna',
+                  onSelect: () => _updateBannerKey.currentState?.checkNow(),
                 ),
                 const SizedBox(width: 12),
                 _HeaderPill(
@@ -98,7 +94,7 @@ class _CameraGridState extends State<CameraGrid> {
               ],
             ),
             const SizedBox(height: 24),
-            UpdateBanner(service: _updates),
+            UpdateBanner(key: _updateBannerKey, service: _updates),
             Expanded(child: _body()),
           ],
         ),
