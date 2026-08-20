@@ -87,14 +87,17 @@ class _TvFocusableState extends State<TvFocusable> {
               ),
               border: Border.all(
                 color: _focused ? scheme.primary : Colors.white10,
-                width: _focused ? 3 : 1,
+                width: _focused ? 2.5 : 1,
               ),
               boxShadow: _focused
                   ? [
+                      // A tight, low-blur ring reads as a crisp outline; the
+                      // wide, heavily blurred glow this replaces looked like
+                      // a smudge around the tile rather than a border.
                       BoxShadow(
-                        color: scheme.primary.withValues(alpha: 0.5),
-                        blurRadius: 28,
-                        spreadRadius: 1,
+                        color: scheme.primary.withValues(alpha: 0.55),
+                        blurRadius: 6,
+                        spreadRadius: 0.5,
                       ),
                       ...kRestShadow,
                     ]

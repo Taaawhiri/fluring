@@ -28,15 +28,38 @@ class _LiveViewState extends State<LiveView> {
   bool _ready = false;
   bool _muted = false;
 
+  final _screenFocus = FocusNode();
+
   @override
   void initState() {
     super.initState();
     _connect();
+
+    // Plain `autofocus: true` loses the race against this screen's own push
+    // transition on Android TV — the platform focus doesn't settle until the
+    // animation finishes, so autofocus asks for focus before there is
+    // anywhere for it to land. Nothing then holds focus at all: the D-pad's
+    // arrows have no current position to move from, and OK has nothing to
+    // select — exactly the bug already found and fixed on the login form.
+    // Requesting focus explicitly once the transition completes is what
+    // actually sticks.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ModalRoute.of(context)?.animation?.addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          _screenFocus.requestFocus();
+        }
+      });
+      if (ModalRoute.of(context)?.animation?.isCompleted ?? true) {
+        _screenFocus.requestFocus();
+      }
+    });
   }
 
   @override
   void dispose() {
     _stream?.dispose();
+    _screenFocus.dispose();
     super.dispose();
   }
 
@@ -69,7 +92,7 @@ class _LiveViewState extends State<LiveView> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Focus(
-        autofocus: true,
+        focusNode: _screenFocus,
         onKeyEvent: (node, event) {
           // The remote's actual Back button (goBack) must NOT be handled
           // here: Android already routes it through the platform's back
