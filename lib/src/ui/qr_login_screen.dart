@@ -4,15 +4,14 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../login_bridge/login_server.dart';
 import '../ring/ring_auth.dart';
 import 'focusable.dart';
-import 'login_screen.dart';
 import 'theme.dart';
 
-/// The TV's half of remote login: shows a QR code, waits for a phone on the
-/// same network to complete the form, then hands off to the camera grid.
+/// The TV's login screen: a QR code the user scans with their phone, which
+/// completes the form there and hands off to the camera grid.
 ///
 /// Typing a Ring password with a D-pad is painful enough that this is the
-/// default entry point; [LoginScreen] — the on-screen-keyboard form — stays
-/// reachable underneath for whoever has no second device handy.
+/// only way in on a TV — there is no on-screen-keyboard fallback here; that
+/// form exists, but only for the phone/tablet build (see [LoginScreen]).
 class QrLoginScreen extends StatefulWidget {
   const QrLoginScreen({
     super.key,
@@ -45,6 +44,8 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
   }
 
   Future<void> _start() async {
+    setState(() => _error = null);
+
     final server = LoginServer(auth: widget.auth);
     _server = server;
 
@@ -53,7 +54,7 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
 
     if (url == null) {
       setState(
-        () => _error = 'Nessuna rete rilevata. Assicurati che la TV sia connessa al Wi-Fi o al cavo, oppure accedi con la tastiera.',
+        () => _error = 'Nessuna rete rilevata. Collega la TV al Wi-Fi o al cavo di rete e riprova.',
       );
       return;
     }
@@ -63,15 +64,6 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
     server.signedIn.then((_) {
       if (mounted) widget.onSignedIn();
     });
-  }
-
-  void _useKeyboard() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) =>
-            LoginScreen(auth: widget.auth, onSignedIn: widget.onSignedIn),
-      ),
-    );
   }
 
   @override
@@ -97,24 +89,32 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
                 ),
                 const SizedBox(height: 32),
                 _body(),
-                const SizedBox(height: 32),
-                TvFocusable(
-                  autofocus: _url == null,
-                  onSelect: _useKeyboard,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest,
-                    child: const Text(
-                      'Usa la tastiera invece',
-                      style: TextStyle(fontSize: 18),
+                if (_error != null) ...[
+                  const SizedBox(height: 32),
+                  TvFocusable(
+                    autofocus: true,
+                    borderRadius: kPillRadius,
+                    onSelect: _start,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: kAccentGradient(
+                          Theme.of(context).colorScheme,
+                        ),
+                      ),
+                      child: const Text(
+                        'Riprova',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
